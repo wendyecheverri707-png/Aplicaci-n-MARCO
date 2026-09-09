@@ -96,7 +96,7 @@ st.markdown("""
         font-size: 0.9rem;
     }
     .stTabs [aria-selected="true"] {
-        background: #2c5364 !important;
+        background: #6c7a89 !important;
         color: white !important;
     }
 </style>
@@ -235,10 +235,10 @@ if consultar:
     # NAVEGACIÓN POR TABS
     # ==============================================================
     tab1, tab2, tab3, tab4 = st.tabs([
-        "📊 Panel de estado",
-        "📈 Serie temporal",
-        "🔍 Análisis de patrones",
-        "🧹 Calidad del dato",
+        "Panel de estado",
+        "Serie temporal",
+        "Análisis de patrones",
+        "Calidad del dato",
     ])
 
     # ==============================================================
@@ -323,14 +323,14 @@ if consultar:
         with col_stats:
             st.markdown("<br>", unsafe_allow_html=True)
             stats = {
-                "📏 Promedio":     f"{nivel_promedio:.2f} cm",
-                "📉 Mínimo":       f"{nivel_min:.2f} cm",
-                "📈 Máximo":       f"{nivel_max:.2f} cm",
-                "〰️ Desv. std":    f"{nivel_std:.2f} cm",
-                "📊 Percentil 25": f"{p25:.2f} cm",
-                "📊 Percentil 75": f"{p75:.2f} cm",
-                "📊 Percentil 90": f"{p90:.2f} cm",
-                "🔢 Lecturas":     f"{len(df):,}",
+                "Promedio":     f"{nivel_promedio:.2f} cm",
+                "Mínimo":       f"{nivel_min:.2f} cm",
+                "Máximo":       f"{nivel_max:.2f} cm",
+                "Desv. std":    f"{nivel_std:.2f} cm",
+                "Percentil 25": f"{p25:.2f} cm",
+                "Percentil 75": f"{p75:.2f} cm",
+                "Percentil 90": f"{p90:.2f} cm",
+                "Lecturas":     f"{len(df):,}",
             }
             for k, v in stats.items():
                 c1, c2 = st.columns([1.5, 1])
@@ -483,7 +483,7 @@ if consultar:
 
         # --- Perfil diario promedio ---
         with col_perfil:
-            st.markdown('<p class="section-title">🕐 Perfil diario promedio</p>', unsafe_allow_html=True)
+            st.markdown('<p class="section-title">Perfil diario promedio</p>', unsafe_allow_html=True)
             st.markdown("<small>Nivel promedio para cada hora del día durante todo el período.</small>", unsafe_allow_html=True)
             st.markdown("<br>", unsafe_allow_html=True)
 
@@ -530,7 +530,7 @@ if consultar:
 
         # --- Histograma con zonas ---
         with col_hist:
-            st.markdown('<p class="section-title">📊 Distribución del nivel</p>', unsafe_allow_html=True)
+            st.markdown('<p class="section-title">Distribución del nivel</p>', unsafe_allow_html=True)
             st.markdown("<small>Frecuencia de cada rango de nivel durante el período.</small>", unsafe_allow_html=True)
             st.markdown("<br>", unsafe_allow_html=True)
 
@@ -581,7 +581,7 @@ if consultar:
     # ==============================================================
     with tab4:
         st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown('<p class="section-title">🧹 Resumen de calidad del dato</p>', unsafe_allow_html=True)
+        st.markdown('<p class="section-title">Resumen de calidad del dato</p>', unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
 
         col_q1, col_q2, col_q3 = st.columns(3)
@@ -610,7 +610,7 @@ if consultar:
         st.markdown("<br>", unsafe_allow_html=True)
 
         # Huecos por día
-        st.markdown('<p class="section-title">📅 Huecos de reporte por día</p>', unsafe_allow_html=True)
+        st.markdown('<p class="section-title">Huecos de reporte por día</p>', unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
 
         df_fecha = df.copy()
@@ -626,7 +626,7 @@ if consultar:
             x=lecturas_por_dia["fecha"].astype(str),
             y=lecturas_por_dia["lecturas"],
             name="Lecturas recibidas",
-            marker_color="#2c5364",
+            marker_color="#5dade2",
             hovertemplate="Día: %{x}<br>Lecturas: %{y}<extra></extra>",
         ))
         fig_huecos.add_trace(go.Bar(
@@ -646,12 +646,12 @@ if consultar:
         )
         st.plotly_chart(fig_huecos, use_container_width=True)
 
-        with st.expander("📋 Ver tabla de completitud por día"):
+        with st.expander("Ver tabla de completitud por día"):
             tabla = lecturas_por_dia[["fecha", "lecturas", "huecos", "completitud"]].copy()
             tabla.columns = ["Fecha", "Lecturas recibidas", "Huecos (min)", "Completitud (%)"]
             st.dataframe(tabla, use_container_width=True, hide_index=True)
 
-        with st.expander("📋 Ver datos crudos"):
+        with st.expander("Ver datos crudos"):
             st.dataframe(df[["fecha", "nivel", "muestra", "calidad"]].head(500), use_container_width=True)
 
         csv = df.to_csv(index=False).encode("utf-8")
