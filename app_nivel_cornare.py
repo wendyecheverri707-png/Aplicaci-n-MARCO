@@ -38,6 +38,10 @@ st.markdown("""
         text-align: center;
         color: white;
         box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        height: 120px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
     }
     .metric-value {
         font-size: 2.4rem;
@@ -62,6 +66,10 @@ st.markdown("""
         text-align: center;
         color: white;
         box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+        height: 120px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
     }
     .badge {
         display: inline-block;
@@ -326,7 +334,181 @@ if consultar:
             c2.markdown(f"<span style='font-weight:600;font-size:0.88rem;'>{v}</span>", unsafe_allow_html=True)
 
     st.markdown("---")
-    st.info("🚧 Próximamente: Serie temporal interactiva con zoom, bandas de percentiles y anotaciones de eventos.")
+
+    # ==============================================================
+    # SECCIÓN 2 — Serie temporal interactiva
+    # ==============================================================
+    st.markdown('<p class="section-title">📈 Serie temporal interactiva</p>', unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # Muestreo para rendimiento: máximo 5000 puntos en el gráfico
+    df_plot = df.copy()
+    if len(df_plot) > 5000:
+        step = len(df_plot) // 5000
+        df_plot = df_plot.iloc[::step].reset_index(drop=True)
+
+    # Colores por zona según el nivel de cada punto
+    def color_zona(n):
+        if n <= p10:   return "#3498db"   # azul — bajo
+        elif n <= p25: return "#2ecc71"   # verde claro — normal bajo
+        elif n <= p75: return "#27ae60"   # verde — normal
+        elif n <= p90: return "#f39c12"   # naranja — alto
+        else:          return "#e74c3c"   # rojo — alerta
+
+    colores = df_plot["nivel"].apply(color_zona).tolist()
+
+    fig_serie = go.Figure()
+
+    # Banda p25–p75 (zona normal)
+    fig_serie.add_trace(go.Scatter(
+        x=pd.concat([df_plot["fecha"], df_plot["fecha"].iloc[::-1]]),
+        y=pd.concat([
+            pd.Series([p75] * len(df_plot)),
+            pd.Series([p25] * len(df_plot)).iloc[::-1]
+        ]),
+        fill="toself",
+        fillcolor="rgba(39,174,96,0.12)",
+        line=dict(color="rgba(0,0,0,0)"),
+        name="Zona normal (p25–p75)",
+        hoverinfo="skip",
+    ))
+
+    # Banda p10–p90 (zona extendida)
+    fig_serie.add_trace(go.Scatter(
+        x=pd.concat([df_plot["fecha"], df_plot["fecha"].iloc[::-1]]),
+        y=pd.concat([
+            pd.Series([p90] * len(df_plot)),
+            pd.Series([p10] * len(df_plot)).iloc[::-1]
+        ]),
+        fill="toself",
+        fillcolor="rgba(243,156,18,0.07)",
+        line=dict(color="rgba(0,0,0,0)"),
+        name="Zona extendida (p10–p90)",
+        hoverinfo="skip",
+    ))
+
+    # Línea principal del nivel
+    fig_serie.add_trace(go.Scatter(
+        x=df_plot["fecha"],
+        y=df_plot["nivel"],
+        mode="lines",
+        line=dict(color="#2c5364", width=1.2),
+        name="Nivel (cm)",
+        hovertemplate="<b>%{x|%d-%b %H:%M}</b><br>Nivel: %{y:.1f} cm<extra></extra>",
+    ))
+
+    # Línea de promedio
+    fig_serie.add_hline(
+        y=nivel_promedio,
+        line_dash="dot",
+        line_color="#7f8c8d",
+        line_width=1.5,
+        annotation_text=f"Promedio {nivel_promedio:.1f} cm",
+        annotation_position="top left",
+        annotation_font_size=11,
+        annotation_font_color="#7f8c8d",
+    )
+
+    # Línea de alerta p90
+    fig_serie.add_hline(
+        y=p90,
+        line_dash="dash",
+        line_color="#e74c3c",
+        line_width=1,
+        annotation_text=f"Alerta p90 ({p90:.1f} cm)",
+        annotation_position="top right",
+        annotation_font_size=11,
+        annotation_font_color="#e74c3c",
+    )
+
+    # Anotación del pico máximo
+    idx_max = df["nivel"].idxmax()
+    fig_serie.add_annotation(
+        x=df.loc[idx_max, "fecha"],
+        y=nivel_max,
+        text=f"🔺 Pico máximo<br>{nivel_max:.1f} cm",
+        showarrow=True,
+        arrowhead=2,
+        arrowcolor="#c0392b",
+        arrowwidth=1.5,
+        bgcolor="rgba(231,76,60,0.15)",
+        bordercolor="#c0392b",
+        borderwidth=1,
+        borderpad=4,
+        font=dict(size=11, color="#c0392b"),
+        ax=40,
+        ay=-40,
+    )
+
+    fig_serie.update_layout(
+        height=420,
+        margin=dict(t=30, b=40, l=60, r=40),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(248,250,252,0.8)",
+        xaxis=dict(
+            title="Fecha",
+            showgrid=True,
+            gridcolor="rgba(0,0,0,0.06)",
+            rangeslider=dict(visible=True, thickness=0.06),
+            rangeselector=dict(
+                buttons=[
+                    dict(count=1, label="1d",  step="day",  stepmode="backward"),
+                    dict(count=3, label="3d",  step="day",  stepmode="backward"),
+                    dict(count=7, label="7d",  step="day",  stepmode="backward"),
+                    dict(step="all", label="Todo"),
+                ],
+                bgcolor="#f0f4f8",
+                activecolor="#2c5364",
+                font=dict(size=11),
+            ),
+        ),
+        yaxis=dict(
+            title="Nivel (cm)",
+            showgrid=True,
+            gridcolor="rgba(0,0,0,0.06)",
+        ),
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="left",
+            x=0,
+            font=dict(size=11),
+        ),
+        hovermode="x unified",
+    )
+
+    st.plotly_chart(fig_serie, use_container_width=True)
+
+    # Callout informativo debajo del gráfico
+    col_info1, col_info2, col_info3 = st.columns(3)
+    with col_info1:
+        st.markdown(f"""
+        <div style="background:#eafaf1;border-left:4px solid #27ae60;border-radius:8px;padding:10px 14px;">
+            <div style="font-size:0.78rem;color:#1e8449;text-transform:uppercase;font-weight:600;">Zona normal</div>
+            <div style="font-size:1rem;font-weight:700;color:#1e8449;">{p25:.1f} – {p75:.1f} cm</div>
+            <div style="font-size:0.78rem;color:#555;">50% del tiempo el río estuvo aquí</div>
+        </div>
+        """, unsafe_allow_html=True)
+    with col_info2:
+        st.markdown(f"""
+        <div style="background:#fef9e7;border-left:4px solid #f39c12;border-radius:8px;padding:10px 14px;">
+            <div style="font-size:0.78rem;color:#b7950b;text-transform:uppercase;font-weight:600;">Zona alta</div>
+            <div style="font-size:1rem;font-weight:700;color:#b7950b;">{p75:.1f} – {p90:.1f} cm</div>
+            <div style="font-size:0.78rem;color:#555;">15% del tiempo — nivel elevado</div>
+        </div>
+        """, unsafe_allow_html=True)
+    with col_info3:
+        st.markdown(f"""
+        <div style="background:#fdedec;border-left:4px solid #e74c3c;border-radius:8px;padding:10px 14px;">
+            <div style="font-size:0.78rem;color:#c0392b;text-transform:uppercase;font-weight:600;">Zona alerta</div>
+            <div style="font-size:1rem;font-weight:700;color:#c0392b;">> {p90:.1f} cm</div>
+            <div style="font-size:0.78rem;color:#555;">10% superior — nivel crítico</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.markdown("---")
+    st.info("🚧 Próximamente: Análisis de patrones — heatmap hora × día, perfil diario y distribución del nivel.")
 
 else:
     st.info("👈 Ajusta los parámetros en el sidebar y presiona **Consultar**.")
